@@ -5,6 +5,7 @@ import {
   Post,
   HttpCode,
   HttpStatus,
+  Get
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -13,6 +14,7 @@ import {
 } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/organization.dto';
+
 
 @ApiTags('Organizations')
 @Controller('organizations')
@@ -38,4 +40,14 @@ export class OrganizationsController {
   create(@Body() dto: CreateOrganizationDto) {
     return this.organizationsService.create(dto);
   }
+  
+@Get()
+@ApiOperation({ summary: 'Get all organizations' })
+@ApiResponse({
+  status: 200,
+  description: 'Organizations retrieved successfully',
+})
+findAll() {
+  return this.organizationsService.findAll();
+}
 }
