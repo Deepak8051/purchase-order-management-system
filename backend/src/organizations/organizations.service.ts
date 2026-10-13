@@ -39,4 +39,13 @@ export class OrganizationsService {
 
     return this.organizationRepository.save(organization);
   }
+  
+async findAll(): Promise<Organization[]> {
+  return this.organizationRepository.find({
+    order: {
+      id: 'ASC',
+    },
+  });
+}
+
 }
