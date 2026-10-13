@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Organization } from './organizations/entities/organization.entity';
+import { OrganizationsModule } from './organizations/organizations.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { Organization } from './organizations/entities/organization.entity';
         synchronize: false,
       }),
     }),
-    TypeOrmModule.forFeature([Organization])
+    TypeOrmModule.forFeature([Organization]),
+    OrganizationsModule
   ],
   controllers: [AppController],
   providers: [AppService],
