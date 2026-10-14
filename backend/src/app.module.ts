@@ -8,6 +8,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
     UsersModule,
     AuthModule,
     SuppliersModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
