@@ -68,4 +68,27 @@ export class User extends BaseEntity {
     default: true,
   })
   isActive: boolean;
+
+  @Column({
+    name: 'DATE_OF_BIRTH',
+    type: 'date',
+    nullable: true,
+  })
+  dateOfBirth: string | null;
+  @Column({
+    name: 'PASSWORD_RESET_TOKEN_HASH',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    select: false,
+  })
+  passwordResetTokenHash: string | null;
+
+  @Column({
+    name: 'PASSWORD_RESET_EXPIRES_AT',
+    type: 'datetime',
+    nullable: true,
+    select: false,
+  })
+  passwordResetExpiresAt: Date | null;
 }
