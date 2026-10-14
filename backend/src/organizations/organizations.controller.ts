@@ -36,7 +36,7 @@ export class OrganizationsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid request    data',
+    description: 'Invalid request data',
   })
   @ApiResponse({
     status: 409,
