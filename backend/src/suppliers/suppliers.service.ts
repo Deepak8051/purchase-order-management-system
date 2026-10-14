@@ -26,7 +26,7 @@ export class SuppliersService {
   ) {}
 
   private getOrganizationId(user: CurrentUser): number | null {
-    if (user.role === UserRole.SUPER_ADMIN) {
+    if (user.role === UserRole.HQ_SUPER_ADMIN) {
       return null;
     }
 
@@ -39,13 +39,13 @@ export class SuppliersService {
 
   async create(dto: CreateSupplierDto, user: CurrentUser) {
     const organizationId =
-      user.role === UserRole.SUPER_ADMIN
+      user.role === UserRole.HQ_SUPER_ADMIN
         ? dto.organizationId
         : this.getOrganizationId(user);
 
     if (organizationId == null) {
       throw new ForbiddenException(
-        'SUPER_ADMIN must provide an organizationId.',
+        'HQ_SUPER_ADMIN must provide an organizationId.',
       );
     }
 

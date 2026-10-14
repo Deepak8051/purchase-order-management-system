@@ -62,7 +62,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
   const [error, setError] = useState("");
 
   const visibleItems = menuItems.filter(
-    (item) => !item.superAdminOnly || userRole === "SUPER_ADMIN",
+    (item) => !item.superAdminOnly || userRole === "HQ_SUPER_ADMIN",
   );
 
   useEffect(() => {
@@ -74,7 +74,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
       try {
         const results = await Promise.allSettled([
-          ...(userRole === "SUPER_ADMIN" ? [api.get("/organizations")] : []),
+          ...(userRole === "HQ_SUPER_ADMIN" ? [api.get("/organizations")] : []),
           api.get("/suppliers"),
           api.get("/products"),
           api.get("/purchase-orders"),
@@ -93,7 +93,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
         const failures: string[] = [];
 
-        if (userRole === "SUPER_ADMIN") {
+        if (userRole === "HQ_SUPER_ADMIN") {
           const result = results[index++];
 
           if (result.status === "fulfilled") {
@@ -158,7 +158,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
       value: counts.organizations,
       icon: "▣",
       color: "bg-blue-50 text-blue-700",
-      visible: userRole === "SUPER_ADMIN",
+      visible: userRole === "HQ_SUPER_ADMIN",
       page: "Organizations",
       description: "Registered organizations",
     },
@@ -248,7 +248,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
         <div className="rounded-xl border border-slate-800 bg-slate-800/70 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-sm font-bold text-blue-300">
-              {userRole === "SUPER_ADMIN" ? "SA" : "US"}
+              {userRole === "HQ_SUPER_ADMIN" ? "SA" : "US"}
             </div>
 
             <div className="min-w-0">
@@ -331,14 +331,14 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
               </div>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-sm font-bold text-blue-700">
-                {userRole === "SUPER_ADMIN" ? "SA" : "US"}
+                {userRole === "HQ_SUPER_ADMIN" ? "SA" : "US"}
               </div>
             </div>
           </div>
         </header>
 
         <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
-          {activePage === "Organizations" && userRole === "SUPER_ADMIN" ? (
+          {activePage === "Organizations" && userRole === "HQ_SUPER_ADMIN" ? (
             <Organizations />
           ) : activePage === "Suppliers" ? (
             <Suppliers />
@@ -486,7 +486,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                       </span>
                     </button>
 
-                    {userRole === "SUPER_ADMIN" && (
+                    {userRole === "HQ_SUPER_ADMIN" && (
                       <button
                         type="button"
                         onClick={() => navigateTo("Organizations")}
