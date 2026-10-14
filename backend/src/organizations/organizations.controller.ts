@@ -20,7 +20,9 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
-
+import { RolesGuard } from '../auth/roles.guard';
+import { UserRole } from '../users/entities/user.entity';
+import { Roles } from '../auth/roles.decorator';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 @ApiTags('Organizations')
@@ -29,6 +31,8 @@ export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Create a new organization' })
   @ApiResponse({
     status: 201,
