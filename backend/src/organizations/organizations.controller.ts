@@ -5,12 +5,15 @@ import {
   Post,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
   Get
 } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
   ApiTags,
+  ApiParam
 } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/organization.dto';
@@ -49,5 +52,23 @@ export class OrganizationsController {
 })
 findAll() {
   return this.organizationsService.findAll();
+}
+@Get(':id')
+@ApiOperation({ summary: 'Get an organization by ID' })
+@ApiParam({
+  name: 'id',
+  example: 1,
+  description: 'Organization ID',
+})
+@ApiResponse({
+  status: 200,
+  description: 'Organization retrieved successfully',
+})
+@ApiResponse({
+  status: 404,
+  description: 'Organization not found',
+})
+findOne(@Param('id', ParseIntPipe) id: number) {
+  return this.organizationsService.findOne(id);
 }
 }

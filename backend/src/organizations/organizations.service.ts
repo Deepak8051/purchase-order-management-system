@@ -1,12 +1,13 @@
 
 import {
   ConflictException,
-  Injectable,
+  Injectable, NotFoundException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Organization } from './entities/organization.entity';
 import { CreateOrganizationDto } from './dto/organization.dto';
+
 
 @Injectable()
 export class OrganizationsService {
@@ -46,6 +47,19 @@ async findAll(): Promise<Organization[]> {
       id: 'ASC',
     },
   });
+}
+async findOne(id: number): Promise<Organization> {
+  const organization = await this.organizationRepository.findOne({
+    where: { id },
+  });
+
+  if (!organization) {
+    throw new NotFoundException(
+      `Organization with ID ${id} not found`,
+    );
+  }
+
+  return organization;
 }
 
 }
