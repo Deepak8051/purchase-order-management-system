@@ -34,7 +34,7 @@ export class PurchaseOrdersService {
   ) {}
 
   private getOrganizationId(user: CurrentUser): number | null {
-    if (user.role === UserRole.SUPER_ADMIN) return null;
+    if (user.role === UserRole.HQ_SUPER_ADMIN) return null;
 
     if (user.organizationId == null) {
       throw new ForbiddenException('Your account has no organization.');
@@ -73,7 +73,7 @@ export class PurchaseOrdersService {
 
   async create(dto: CreatePurchaseOrderDto, user: CurrentUser) {
     const organizationId =
-      user.role === UserRole.SUPER_ADMIN
+      user.role === UserRole.HQ_SUPER_ADMIN
         ? this.getSuperAdminOrganizationId(dto, user)
         : this.getOrganizationId(user);
 
@@ -177,7 +177,7 @@ export class PurchaseOrdersService {
     dto: CreatePurchaseOrderDto,
     user: CurrentUser,
   ): number | null {
-    // A SUPER_ADMIN has no default organization. Use the configured
+    // A HQ_SUPER_ADMIN has no default organization. Use the configured
     // organization ID on the DTO if supplied by the controller.
     const organizationId = (
       dto as CreatePurchaseOrderDto & {
@@ -187,7 +187,7 @@ export class PurchaseOrdersService {
 
     if (!organizationId) {
       throw new BadRequestException(
-        'SUPER_ADMIN must provide an organizationId.',
+        'HQ_SUPER_ADMIN must provide an organizationId.',
       );
     }
 

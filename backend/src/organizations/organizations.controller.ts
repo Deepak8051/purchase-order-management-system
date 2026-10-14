@@ -32,7 +32,7 @@ export class OrganizationsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.HQ_SUPER_ADMIN)
   @ApiOperation({ summary: 'Create a new organization' })
   @ApiResponse({
     status: 201,

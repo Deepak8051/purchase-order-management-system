@@ -50,7 +50,7 @@ export class CreatePurchaseOrderDto {
 
   @ApiPropertyOptional({
     example: 1,
-    description: 'Required for SUPER_ADMIN; ignored for ORG_ADMIN.',
+    description: 'Required for HQ_SUPER_ADMIN; ignored for ORG_ADMIN.',
   })
   @IsOptional()
   @Type(() => Number)

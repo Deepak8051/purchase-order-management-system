@@ -46,7 +46,7 @@ async function seedAdmin() {
       name: 'POMS Super Admin',
       email,
       passwordHash,
-      role: UserRole.SUPER_ADMIN,
+      role: UserRole.HQ_SUPER_ADMIN,
       organizationId: null,
       isActive: true,
     });
