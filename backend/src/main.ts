@@ -1,4 +1,3 @@
-
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -17,11 +16,11 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Purchase Order Management System API')
-    .setDescription(
-      'REST API documentation for the POMS application',
-    )
+    .setDescription('REST API documentation for the POMS application')
     .setVersion('1.0')
+    .addBearerAuth()
     .addTag('Organizations', 'Organization management APIs')
+    .addTag('Authentication', 'Login and user authentication')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
