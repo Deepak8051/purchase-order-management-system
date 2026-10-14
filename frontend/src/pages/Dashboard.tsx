@@ -11,7 +11,10 @@ import Products from "./Products";
 import PurchaseOrders from "./PurchaseOrders";
 
 import Organizations from "./Organizations";
+
 import UserManagement from "./UserManagement";
+
+import { LogOut } from "lucide-react";
 
 type DashboardProps = {
   userRole: string;
@@ -43,18 +46,27 @@ const ADMIN_ROLES = ["HQ_SUPER_ADMIN", "OUTLET_SUPER_ADMIN", "ORG_ADMIN"];
 
 const menuItems = [
   { label: "Dashboard", icon: "▦" },
+
   {
     label: "User Management",
+
     icon: "♙",
+
     adminOnly: true,
   },
+
   {
     label: "Organizations",
+
     icon: "▣",
+
     superAdminOnly: true,
   },
+
   { label: "Suppliers", icon: "♧" },
+
   { label: "Products", icon: "□" },
+
   { label: "Purchase Orders", icon: "☷" },
 ];
 
@@ -377,7 +389,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
   };
 
   const renderSidebar = () => (
-    <>
+    <div className="flex min-h-full flex-col">
       <div className="flex h-[76px] items-center gap-3 border-b border-slate-800 px-6">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-extrabold tracking-wide text-white shadow-lg shadow-blue-950/30">
           PO
@@ -387,6 +399,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
           <h1 className="m-0 text-2xl font-bold leading-tight tracking-tight text-white">
             POMS
           </h1>
+
           <p className="mt-0.5 text-[11px] leading-4 text-slate-400">
             Procurement System
           </p>
@@ -429,7 +442,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
         </nav>
       </div>
 
-      <div className="mt-auto p-4">
+      <div className="mt-auto shrink-0 p-4">
         <div className="rounded-xl border border-slate-800 bg-slate-800/70 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-sm font-bold text-blue-300">
@@ -446,7 +459,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
               <p className="text-xs text-slate-400">Signed in as</p>
 
               <p className="mt-1 truncate text-sm font-semibold text-white">
-                {userRole.replace(/_/g, " ")}
+                {userRole.replace(/\_/g, " ")}
               </p>
             </div>
           </div>
@@ -457,16 +470,17 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
           onClick={onLogout}
           className="mt-3 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
         >
-          <span className="text-lg">↪</span>
-          Sign Out
+          <LogOut size={20} />
+
+          <span>Sign Out</span>
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-slate-950 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-screen w-64 flex-col overflow-y-auto bg-slate-950 md:flex">
         {renderSidebar()}
       </aside>
 
@@ -479,7 +493,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
             className="absolute inset-0 bg-slate-950/60"
           />
 
-          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col bg-slate-950">
+          <aside className="absolute inset-y-0 left-0 z-50 flex h-full w-72 max-w-[85vw] flex-col overflow-y-auto bg-slate-950">
             {renderSidebar()}
           </aside>
         </div>
@@ -518,7 +532,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                 <p className="text-xs text-slate-500">Current role</p>
 
                 <p className="mt-1 text-sm font-semibold text-slate-800">
-                  {userRole.replace(/_/g, " ")}
+                  {userRole.replace(/\_/g, " ")}
                 </p>
               </div>
 
