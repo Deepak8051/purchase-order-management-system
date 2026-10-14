@@ -9,6 +9,8 @@ import {
   UseGuards,
   ParseIntPipe,
   Req,
+  Query,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -44,8 +46,18 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'List products accessible to the user' })
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.productsService.findAll(req.user);
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query('city') city?: string,
+    @Query('outletId') outletId?: string,
+  ) {
+    return this.productsService.findAll(
+      req.user,
+      city,
+      outletId === undefined || outletId.trim() === ''
+        ? undefined
+        : Number(outletId),
+    );
   }
 
   @Get(':id')

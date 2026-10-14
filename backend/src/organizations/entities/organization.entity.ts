@@ -34,4 +34,12 @@ export class Organization extends BaseEntity {
     default: true,
   })
   isActive: boolean;
+
+  @Column({
+    name: 'CITY',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  city: string | null;
 }
