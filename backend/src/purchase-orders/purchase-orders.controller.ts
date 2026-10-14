@@ -55,9 +55,21 @@ export class PurchaseOrdersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List purchase orders' })
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.purchaseOrdersService.findAll(req.user);
+  @ApiOperation({
+    summary: 'List purchase orders with optional city/outlet filters',
+  })
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query('city') city?: string,
+    @Query('outletId') outletId?: string,
+  ) {
+    return this.purchaseOrdersService.findAll(
+      req.user,
+      city,
+      outletId === undefined || outletId.trim() === ''
+        ? undefined
+        : Number(outletId),
+    );
   }
 
   @Get(':id')

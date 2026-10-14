@@ -175,36 +175,61 @@ export class PurchaseOrdersService {
 
   private getSuperAdminOrganizationId(
     dto: CreatePurchaseOrderDto,
-    user: CurrentUser,
-  ): number | null {
-    // A HQ_SUPER_ADMIN has no default organization. Use the configured
-    // organization ID on the DTO if supplied by the controller.
+    _user: CurrentUser,
+  ): number {
     const organizationId = (
       dto as CreatePurchaseOrderDto & {
         organizationId?: number;
       }
     ).organizationId;
 
-    if (!organizationId) {
+    if (
+      organizationId == null ||
+      !Number.isInteger(organizationId) ||
+      organizationId <= 0
+    ) {
       throw new BadRequestException(
-        'HQ_SUPER_ADMIN must provide an organizationId.',
+        'HQ_SUPER_ADMIN must provide a valid organizationId.',
       );
     }
 
     return organizationId;
   }
 
-  async findAll(user: CurrentUser) {
+  async findAll(user: CurrentUser, city?: string, outletId?: number) {
     const organizationId = this.getOrganizationId(user);
+
     const query = this.orderRepository
       .createQueryBuilder('po')
       .leftJoinAndSelect('po.supplier', 'supplier')
       .leftJoinAndSelect('po.items', 'items')
       .leftJoinAndSelect('items.product', 'product')
+      .leftJoin('po.organization', 'organization')
       .orderBy('po.createdAt', 'DESC');
 
+    // Preserve existing organization-level access.
     if (organizationId !== null) {
-      query.where('po.organizationId = :organizationId', { organizationId });
+      query.andWhere('po.organizationId = :organizationId', {
+        organizationId,
+      });
+    }
+
+    // Filter purchase orders by city.
+    if (city?.trim()) {
+      query.andWhere('organization.city = :city', {
+        city: city.trim(),
+      });
+    }
+
+    // Filter purchase orders by outlet.
+    if (outletId !== undefined) {
+      if (!Number.isInteger(outletId) || outletId <= 0) {
+        throw new BadRequestException('outletId must be a positive integer.');
+      }
+
+      query.andWhere('po.organizationId = :outletId', {
+        outletId,
+      });
     }
 
     return query.getMany();

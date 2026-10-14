@@ -2,8 +2,6 @@ import {
   Body,
   Controller,
   Post,
-  HttpCode,
-  HttpStatus,
   Param,
   ParseIntPipe,
   Get,
@@ -12,18 +10,26 @@ import {
   BadRequestException,
   Delete,
   Patch,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+
 import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
-import { UseGuards } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { UserRole } from '../users/entities/user.entity';
 import { Roles } from '../auth/roles.decorator';
-@UseGuards(JwtAuthGuard)
+
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.HQ_SUPER_ADMIN)
 @ApiBearerAuth()
 @ApiTags('Organizations')
 @Controller('organizations')
@@ -31,8 +37,6 @@ export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HQ_SUPER_ADMIN)
   @ApiOperation({ summary: 'Create a new organization' })
   @ApiResponse({
     status: 201,
@@ -50,6 +54,30 @@ export class OrganizationsController {
     return this.organizationsService.create(dto);
   }
 
+  // Keep static routes before @Get(':id').
+
+  @Get('cities')
+  @Roles(
+    UserRole.HQ_SUPER_ADMIN,
+    UserRole.OUTLET_SUPER_ADMIN,
+    UserRole.ORG_ADMIN,
+  )
+  @ApiOperation({ summary: 'Get available cities' })
+  findAllCities() {
+    return this.organizationsService.findAllCities();
+  }
+
+  @Get('outlets')
+  @Roles(
+    UserRole.HQ_SUPER_ADMIN,
+    UserRole.OUTLET_SUPER_ADMIN,
+    UserRole.ORG_ADMIN,
+  )
+  @ApiOperation({ summary: 'Get outlets, optionally filtered by city' })
+  findOutlets(@Query('city') city?: string) {
+    return this.organizationsService.findOutlets(city);
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Get organizations with search, filtering and pagination',
@@ -61,6 +89,8 @@ export class OrganizationsController {
     limit: number,
     @Query('search') search?: string,
     @Query('isActive') isActive?: string,
+    @Query('city') city?: string,
+    @Query('outletId') outletId?: string,
   ) {
     if (page < 1 || limit < 1 || limit > 100) {
       throw new BadRequestException(
@@ -69,13 +99,33 @@ export class OrganizationsController {
     }
 
     let activeFilter: boolean | undefined;
+
     if (isActive !== undefined) {
       if (isActive !== 'true' && isActive !== 'false') {
         throw new BadRequestException('isActive must be true or false');
       }
+
       activeFilter = isActive === 'true';
     }
-    return this.organizationsService.findAll(page, limit, search, activeFilter);
+
+    let parsedOutletId: number | undefined;
+
+    if (outletId !== undefined && outletId.trim() !== '') {
+      parsedOutletId = Number(outletId);
+
+      if (!Number.isInteger(parsedOutletId) || parsedOutletId <= 0) {
+        throw new BadRequestException('outletId must be a positive integer');
+      }
+    }
+
+    return this.organizationsService.findAll(
+      page,
+      limit,
+      search,
+      activeFilter,
+      city,
+      parsedOutletId,
+    );
   }
 
   @Get(':id')

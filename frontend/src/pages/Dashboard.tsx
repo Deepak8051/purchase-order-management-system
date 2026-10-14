@@ -1,29 +1,54 @@
 import { useEffect, useState } from "react";
+
 import axios from "axios";
+
 import api from "../services/api";
 
 import Suppliers from "./Suppliers";
+
 import Products from "./Products";
+
 import PurchaseOrders from "./PurchaseOrders";
+
 import Organizations from "./Organizations";
 
 type DashboardProps = {
   userRole: string;
+
   onLogout: () => void;
 };
 
 type DashboardCounts = {
   organizations: number;
+
   suppliers: number;
+
   products: number;
+
   purchaseOrders: number;
 };
 
+type Outlet = {
+  id: number;
+
+  name: string;
+
+  code: string;
+
+  city: string | null;
+};
+
+const ADMIN_ROLES = ["HQ_SUPER_ADMIN", "OUTLET_SUPER_ADMIN", "ORG_ADMIN"];
+
 const menuItems = [
   { label: "Dashboard", icon: "▦" },
+
   { label: "Organizations", icon: "▣", superAdminOnly: true },
+
   { label: "Suppliers", icon: "♧" },
+
   { label: "Products", icon: "□" },
+
   { label: "Purchase Orders", icon: "☷" },
 ];
 
@@ -33,14 +58,20 @@ function getCount(data: unknown): number {
   if (data && typeof data === "object") {
     const result = data as {
       items?: unknown[];
+
       data?: unknown;
+
       total?: number;
+
       totalCount?: number;
     };
 
     if (typeof result.total === "number") return result.total;
+
     if (typeof result.totalCount === "number") return result.totalCount;
+
     if (Array.isArray(result.items)) return result.items.length;
+
     if (Array.isArray(result.data)) return result.data.length;
   }
 
@@ -49,17 +80,103 @@ function getCount(data: unknown): number {
 
 function Dashboard({ userRole, onLogout }: DashboardProps) {
   const [activePage, setActivePage] = useState("Dashboard");
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [counts, setCounts] = useState<DashboardCounts>({
     organizations: 0,
+
     suppliers: 0,
+
     products: 0,
+
     purchaseOrders: 0,
   });
 
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState("");
+
+  const [cities, setCities] = useState<string[]>([]);
+
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
+
+  const [selectedCity, setSelectedCity] = useState("ALL");
+
+  const [selectedOutlet, setSelectedOutlet] = useState("ALL");
+
+  const canUseLocationFilters = ADMIN_ROLES.includes(userRole);
+
+  useEffect(() => {
+    if (!canUseLocationFilters) return;
+
+    let cancelled = false;
+
+    async function loadCities() {
+      try {
+        const response = await api.get<string[]>("/organizations/cities");
+
+        if (!cancelled) setCities(response.data);
+      } catch (err: unknown) {
+        if (!cancelled) {
+          console.error("Failed to load cities:", err);
+
+          setError(
+            "Unable to load cities. Check your permissions and backend API.",
+          );
+        }
+      }
+    }
+
+    void loadCities();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canUseLocationFilters]);
+
+  useEffect(() => {
+    if (!canUseLocationFilters) return;
+
+    let cancelled = false;
+
+    async function loadOutlets() {
+      try {
+        const params = selectedCity === "ALL" ? {} : { city: selectedCity };
+
+        const response = await api.get<Outlet[]>("/organizations/outlets", {
+          params,
+        });
+
+        if (!cancelled) {
+          setOutlets(response.data);
+
+          if (
+            selectedOutlet !== "ALL" &&
+            !response.data.some(
+              (outlet) => String(outlet.id) === selectedOutlet,
+            )
+          ) {
+            setSelectedOutlet("ALL");
+          }
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          console.error("Failed to load outlets:", err);
+
+          setError(
+            "Unable to load outlets. Check your permissions and backend API.",
+          );
+        }
+      }
+    }
+
+    void loadOutlets();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canUseLocationFilters, selectedCity, selectedOutlet]);
 
   const visibleItems = menuItems.filter(
     (item) => !item.superAdminOnly || userRole === "HQ_SUPER_ADMIN",
@@ -70,14 +187,30 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
     async function fetchCounts() {
       setLoading(true);
+
       setError("");
 
       try {
+        const params: Record<string, string> = {};
+
+        if (selectedCity !== "ALL") {
+          params.city = selectedCity;
+        }
+
+        if (selectedOutlet !== "ALL") {
+          params.outletId = selectedOutlet;
+        }
+
         const results = await Promise.allSettled([
-          ...(userRole === "HQ_SUPER_ADMIN" ? [api.get("/organizations")] : []),
-          api.get("/suppliers"),
-          api.get("/products"),
-          api.get("/purchase-orders"),
+          ...(userRole === "HQ_SUPER_ADMIN"
+            ? [api.get("/organizations", { params })]
+            : []),
+
+          api.get("/suppliers", { params }),
+
+          api.get("/products", { params }),
+
+          api.get("/purchase-orders", { params }),
         ]);
 
         if (cancelled) return;
@@ -86,8 +219,11 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
         const nextCounts: DashboardCounts = {
           organizations: 0,
+
           suppliers: 0,
+
           products: 0,
+
           purchaseOrders: 0,
         };
 
@@ -104,7 +240,9 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
         }
 
         const suppliersResult = results[index++];
+
         const productsResult = results[index++];
+
         const ordersResult = results[index++];
 
         if (suppliersResult.status === "fulfilled") {
@@ -150,49 +288,77 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
     return () => {
       cancelled = true;
     };
-  }, [userRole]);
+  }, [userRole, selectedCity, selectedOutlet]);
 
   const cards = [
     {
       label: "Organizations",
+
       value: counts.organizations,
+
       icon: "▣",
+
       color: "bg-blue-50 text-blue-700",
+
       visible: userRole === "HQ_SUPER_ADMIN",
+
       page: "Organizations",
+
       description: "Registered organizations",
     },
+
     {
       label: "Suppliers",
+
       value: counts.suppliers,
+
       icon: "♧",
+
       color: "bg-violet-50 text-violet-700",
+
       visible: true,
+
       page: "Suppliers",
+
       description: "Procurement partners",
     },
+
     {
       label: "Products",
+
       value: counts.products,
+
       icon: "□",
+
       color: "bg-emerald-50 text-emerald-700",
+
       visible: true,
+
       page: "Products",
+
       description: "Available catalogue items",
     },
+
     {
       label: "Purchase Orders",
+
       value: counts.purchaseOrders,
+
       icon: "☷",
+
       color: "bg-amber-50 text-amber-700",
+
       visible: true,
+
       page: "Purchase Orders",
+
       description: "Recorded purchase orders",
     },
   ].filter((card) => card.visible);
 
   const navigateTo = (page: string) => {
     setActivePage(page);
+
     setMobileMenuOpen(false);
   };
 
@@ -205,6 +371,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
         <div>
           <h1 className="text-lg font-bold tracking-wide text-white">POMS</h1>
+
           <p className="text-xs text-slate-400">Procurement System</p>
         </div>
       </div>
@@ -233,6 +400,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                 <span className="flex h-6 w-6 items-center justify-center text-lg">
                   {item.icon}
                 </span>
+
                 <span>{item.label}</span>
 
                 {active && (
@@ -248,11 +416,18 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
         <div className="rounded-xl border border-slate-800 bg-slate-800/70 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-sm font-bold text-blue-300">
-              {userRole === "HQ_SUPER_ADMIN" ? "SA" : "US"}
+              {userRole === "HQ_SUPER_ADMIN"
+                ? "HQ"
+                : userRole === "OUTLET_SUPER_ADMIN"
+                  ? "OS"
+                  : userRole === "ORG_ADMIN"
+                    ? "OA"
+                    : "US"}
             </div>
 
             <div className="min-w-0">
               <p className="text-xs text-slate-400">Signed in as</p>
+
               <p className="mt-1 truncate text-sm font-semibold text-white">
                 {userRole.replace(/_/g, " ")}
               </p>
@@ -274,12 +449,10 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
-      {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-slate-950 md:flex">
         {renderSidebar()}
       </aside>
 
-      {/* Mobile navigation */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <button
@@ -295,7 +468,6 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
         </div>
       )}
 
-      {/* Main area */}
       <div className="min-h-screen md:pl-64">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex min-h-20 items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
@@ -312,7 +484,9 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
                   <span>POMS</span>
+
                   <span>/</span>
+
                   <span className="truncate text-blue-600">{activePage}</span>
                 </div>
 
@@ -325,13 +499,20 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
             <div className="flex shrink-0 items-center gap-3">
               <div className="hidden text-right sm:block">
                 <p className="text-xs text-slate-500">Current role</p>
+
                 <p className="mt-1 text-sm font-semibold text-slate-800">
                   {userRole.replace(/_/g, " ")}
                 </p>
               </div>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-sm font-bold text-blue-700">
-                {userRole === "HQ_SUPER_ADMIN" ? "SA" : "US"}
+                {userRole === "HQ_SUPER_ADMIN"
+                  ? "HQ"
+                  : userRole === "OUTLET_SUPER_ADMIN"
+                    ? "OS"
+                    : userRole === "ORG_ADMIN"
+                      ? "OA"
+                      : "US"}
               </div>
             </div>
           </div>
@@ -362,6 +543,70 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                   suppliers, products, and purchase orders from one place.
                 </p>
               </div>
+
+              {canUseLocationFilters && (
+                <div className="mb-6 grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="city-filter"
+                      className="mb-2 block text-sm font-medium text-slate-700"
+                    >
+                      City
+                    </label>
+
+                    <select
+                      id="city-filter"
+                      value={selectedCity}
+                      onChange={(event) => {
+                        setSelectedCity(event.target.value);
+
+                        setSelectedOutlet("ALL");
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    >
+                      <option value="ALL">All Cities</option>
+
+                      {cities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="outlet-filter"
+                      className="mb-2 block text-sm font-medium text-slate-700"
+                    >
+                      Outlet
+                    </label>
+
+                    <select
+                      id="outlet-filter"
+                      value={selectedOutlet}
+                      onChange={(event) =>
+                        setSelectedOutlet(event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    >
+                      <option value="ALL">All Outlets</option>
+
+                      {outlets.map((outlet) => (
+                        <option key={outlet.id} value={String(outlet.id)}>
+                          {outlet.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <p className="text-xs text-slate-500 sm:col-span-2">
+                    Filters select the city and outlet. Dashboard counts will
+                    reflect the selection after the list APIs support these
+                    filters.
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div
@@ -440,10 +685,12 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                       <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-xl text-violet-700">
                         ♧
                       </span>
+
                       <span>
                         <span className="block text-sm font-semibold text-slate-800">
                           Manage Suppliers
                         </span>
+
                         <span className="mt-1 block text-xs text-slate-500">
                           View supplier records
                         </span>
@@ -458,10 +705,12 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                       <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-xl text-emerald-700">
                         □
                       </span>
+
                       <span>
                         <span className="block text-sm font-semibold text-slate-800">
                           Manage Products
                         </span>
+
                         <span className="mt-1 block text-xs text-slate-500">
                           Browse the catalogue
                         </span>
@@ -476,10 +725,12 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                       <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-xl text-amber-700">
                         ☷
                       </span>
+
                       <span>
                         <span className="block text-sm font-semibold text-slate-800">
                           Purchase Orders
                         </span>
+
                         <span className="mt-1 block text-xs text-slate-500">
                           View and manage orders
                         </span>
@@ -495,10 +746,12 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
                         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-xl text-blue-700">
                           ▣
                         </span>
+
                         <span>
                           <span className="block text-sm font-semibold text-slate-800">
                             Organizations
                           </span>
+
                           <span className="mt-1 block text-xs text-slate-500">
                             Manage organizations
                           </span>
@@ -524,6 +777,7 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
                   <div className="mt-5 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-700">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
+
                     {loading
                       ? "Loading data..."
                       : error

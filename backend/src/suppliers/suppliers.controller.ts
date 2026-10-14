@@ -9,6 +9,7 @@ import {
   UseGuards,
   ParseIntPipe,
   Req,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -43,9 +44,19 @@ export class SuppliersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List suppliers' })
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.suppliersService.findAll(req.user);
+  @ApiOperation({ summary: 'List suppliers with optional city/outlet filters' })
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query('city') city?: string,
+    @Query('outletId') outletId?: string,
+  ) {
+    return this.suppliersService.findAll(
+      req.user,
+      city,
+      outletId === undefined || outletId.trim() === ''
+        ? undefined
+        : Number(outletId),
+    );
   }
 
   @Get(':id')

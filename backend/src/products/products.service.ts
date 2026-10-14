@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -74,16 +75,36 @@ export class ProductsService {
     }
   }
 
-  async findAll(user: CurrentUser) {
+  async findAll(user: CurrentUser, city?: string, outletId?: number) {
     const organizationId = this.getOrganizationId(user);
 
     const query = this.productRepository
       .createQueryBuilder('product')
+      .leftJoin('product.organization', 'organization')
       .orderBy('product.createdAt', 'DESC');
 
+    // Non-HQ users remain restricted to their assigned organization.
     if (organizationId !== null) {
-      query.where('product.organizationId = :organizationId', {
+      query.andWhere('product.organizationId = :organizationId', {
         organizationId,
+      });
+    }
+
+    // Filter by city when provided.
+    if (city?.trim()) {
+      query.andWhere('organization.city = :city', {
+        city: city.trim(),
+      });
+    }
+
+    // Filter by a specific outlet when provided.
+    if (outletId !== undefined) {
+      if (!Number.isInteger(outletId) || outletId <= 0) {
+        throw new BadRequestException('outletId must be a positive integer.');
+      }
+
+      query.andWhere('product.organizationId = :outletId', {
+        outletId,
       });
     }
 

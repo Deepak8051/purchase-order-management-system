@@ -1,13 +1,13 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, FindOptionsWhere, Repository } from 'typeorm';
 import { Organization } from './entities/organization.entity';
 import { CreateOrganizationDto } from './dto/organization.dto';
-import { Like, FindOptionsWhere } from 'typeorm';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
 @Injectable()
@@ -16,6 +16,43 @@ export class OrganizationsService {
     @InjectRepository(Organization)
     private readonly organizationRepository: Repository<Organization>,
   ) {}
+
+  async findAllCities(): Promise<string[]> {
+    const results = await this.organizationRepository
+      .createQueryBuilder('organization')
+      .select('DISTINCT organization.city', 'city')
+      .where('organization.city IS NOT NULL')
+      .andWhere("TRIM(organization.city) <> ''")
+      .andWhere('organization.isActive = :isActive', {
+        isActive: true,
+      })
+      .orderBy('city', 'ASC')
+      .getRawMany<{ city: string }>();
+
+    return results.map((result) => result.city);
+  }
+
+  async findOutlets(city?: string): Promise<Organization[]> {
+    const query = this.organizationRepository
+      .createQueryBuilder('organization')
+      .select([
+        'organization.id',
+        'organization.name',
+        'organization.code',
+        'organization.city',
+      ])
+      .where('organization.isActive = :isActive', {
+        isActive: true,
+      });
+
+    if (city?.trim()) {
+      query.andWhere('organization.city = :city', {
+        city: city.trim(),
+      });
+    }
+
+    return query.orderBy('organization.name', 'ASC').getMany();
+  }
 
   async create(dto: CreateOrganizationDto): Promise<Organization> {
     const existing = await this.organizationRepository.findOne({
@@ -35,30 +72,61 @@ export class OrganizationsService {
     return this.organizationRepository.save(organization);
   }
 
-  async findAll(page = 1, limit = 10, search?: string, isActive?: boolean) {
-    const skip = (page - 1) * limit;
-    const where: FindOptionsWhere<Organization>[] = [];
-    if (search?.trim()) {
-      where.push(
-        {
-          name: Like(`%${search.trim()}%`),
-          ...(isActive !== undefined && { isActive }),
-        },
-        {
-          code: Like(`%${search.trim()}%`),
-          ...(isActive !== undefined && { isActive }),
-        },
-      );
-    } else if (isActive !== undefined) {
-      where.push({ isActive });
+  async findAll(
+    page = 1,
+    limit = 10,
+    search?: string,
+    isActive?: boolean,
+    city?: string,
+    outletId?: number,
+  ) {
+    if (!Number.isInteger(page) || page < 1) {
+      throw new BadRequestException('Page must be a positive integer');
     }
-    const [organizations, total] =
-      await this.organizationRepository.findAndCount({
-        where: where.length ? where : undefined,
-        order: { id: 'ASC' },
-        skip,
-        take: limit,
+
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new BadRequestException('Limit must be a positive integer');
+    }
+
+    if (
+      outletId !== undefined &&
+      (!Number.isInteger(outletId) || outletId <= 0)
+    ) {
+      throw new BadRequestException('Outlet ID must be a positive integer');
+    }
+
+    const query = this.organizationRepository
+      .createQueryBuilder('organization')
+      .orderBy('organization.id', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (search?.trim()) {
+      query.andWhere(
+        '(organization.name LIKE :search OR organization.code LIKE :search)',
+        { search: `%${search.trim()}%` },
+      );
+    }
+
+    if (isActive !== undefined) {
+      query.andWhere('organization.isActive = :isActive', {
+        isActive,
       });
+    }
+
+    if (city?.trim()) {
+      query.andWhere('organization.city = :city', {
+        city: city.trim(),
+      });
+    }
+
+    if (outletId !== undefined) {
+      query.andWhere('organization.id = :outletId', {
+        outletId,
+      });
+    }
+
+    const [organizations, total] = await query.getManyAndCount();
 
     return {
       data: organizations,

@@ -11,11 +11,10 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { Organization } from '../../organizations/entities/organization.entity';
 
 export enum UserRole {
-  HQ_HQ_SUPER_ADMIN = 'HQ_HQ_SUPER_ADMIN',
-  OUTLET_HQ_SUPER_ADMIN = 'OUTLET_HQ_SUPER_ADMIN',
+  HQ_SUPER_ADMIN = 'HQ_SUPER_ADMIN',
+  OUTLET_SUPER_ADMIN = 'OUTLET_SUPER_ADMIN',
   ORG_ADMIN = 'ORG_ADMIN',
   USER = 'USER',
-  HQ_SUPER_ADMIN = 'HQ_SUPER_ADMIN',
 }
 
 @Entity('USERS')

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -43,10 +44,12 @@ export class SuppliersService {
         ? dto.organizationId
         : this.getOrganizationId(user);
 
-    if (organizationId == null) {
-      throw new ForbiddenException(
-        'HQ_SUPER_ADMIN must provide an organizationId.',
-      );
+    if (
+      organizationId == null ||
+      !Number.isInteger(organizationId) ||
+      organizationId <= 0
+    ) {
+      throw new BadRequestException('A valid organizationId must be provided.');
     }
 
     try {
@@ -77,16 +80,36 @@ export class SuppliersService {
     }
   }
 
-  async findAll(user: CurrentUser) {
+  async findAll(user: CurrentUser, city?: string, outletId?: number) {
     const organizationId = this.getOrganizationId(user);
 
     const query = this.supplierRepository
       .createQueryBuilder('supplier')
+      .leftJoin('supplier.organization', 'organization')
       .orderBy('supplier.createdAt', 'DESC');
 
+    // Preserve existing organization-level access.
     if (organizationId !== null) {
-      query.where('supplier.organizationId = :organizationId', {
+      query.andWhere('supplier.organizationId = :organizationId', {
         organizationId,
+      });
+    }
+
+    // Filter suppliers by city.
+    if (city?.trim()) {
+      query.andWhere('organization.city = :city', {
+        city: city.trim(),
+      });
+    }
+
+    // Filter suppliers by outlet.
+    if (outletId !== undefined) {
+      if (!Number.isInteger(outletId) || outletId <= 0) {
+        throw new BadRequestException('outletId must be a positive integer.');
+      }
+
+      query.andWhere('supplier.organizationId = :outletId', {
+        outletId,
       });
     }
 
