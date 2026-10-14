@@ -30,9 +30,18 @@ async function bootstrap() {
     .setTitle('Purchase Order Management System API')
     .setDescription('REST API documentation for the POMS application')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+      },
+      'access-token',
+    )
     .addTag('Organizations', 'Organization management APIs')
     .addTag('Authentication', 'Login and user authentication')
+    .addTag('Users', 'User management APIs')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

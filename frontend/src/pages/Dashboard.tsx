@@ -11,6 +11,7 @@ import Products from "./Products";
 import PurchaseOrders from "./PurchaseOrders";
 
 import Organizations from "./Organizations";
+import UserManagement from "./UserManagement";
 
 type DashboardProps = {
   userRole: string;
@@ -42,13 +43,18 @@ const ADMIN_ROLES = ["HQ_SUPER_ADMIN", "OUTLET_SUPER_ADMIN", "ORG_ADMIN"];
 
 const menuItems = [
   { label: "Dashboard", icon: "▦" },
-
-  { label: "Organizations", icon: "▣", superAdminOnly: true },
-
+  {
+    label: "User Management",
+    icon: "♙",
+    adminOnly: true,
+  },
+  {
+    label: "Organizations",
+    icon: "▣",
+    superAdminOnly: true,
+  },
   { label: "Suppliers", icon: "♧" },
-
   { label: "Products", icon: "□" },
-
   { label: "Purchase Orders", icon: "☷" },
 ];
 
@@ -178,9 +184,17 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
     };
   }, [canUseLocationFilters, selectedCity, selectedOutlet]);
 
-  const visibleItems = menuItems.filter(
-    (item) => !item.superAdminOnly || userRole === "HQ_SUPER_ADMIN",
-  );
+  const visibleItems = menuItems.filter((item) => {
+    if ("adminOnly" in item && item.adminOnly) {
+      return ADMIN_ROLES.includes(userRole);
+    }
+
+    if ("superAdminOnly" in item && item.superAdminOnly) {
+      return userRole === "HQ_SUPER_ADMIN";
+    }
+
+    return true;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -364,15 +378,18 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
 
   const renderSidebar = () => (
     <>
-      <div className="flex h-20 items-center gap-3 border-b border-slate-800 px-6">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-sm font-extrabold tracking-wide text-white shadow-lg shadow-blue-950/30">
+      <div className="flex h-[76px] items-center gap-3 border-b border-slate-800 px-6">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-extrabold tracking-wide text-white shadow-lg shadow-blue-950/30">
           PO
         </div>
 
-        <div>
-          <h1 className="text-lg font-bold tracking-wide text-white">POMS</h1>
-
-          <p className="text-xs text-slate-400">Procurement System</p>
+        <div className="min-w-0">
+          <h1 className="m-0 text-2xl font-bold leading-tight tracking-tight text-white">
+            POMS
+          </h1>
+          <p className="mt-0.5 text-[11px] leading-4 text-slate-400">
+            Procurement System
+          </p>
         </div>
       </div>
 
@@ -519,7 +536,11 @@ function Dashboard({ userRole, onLogout }: DashboardProps) {
         </header>
 
         <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
-          {activePage === "Organizations" && userRole === "HQ_SUPER_ADMIN" ? (
+          {activePage === "User Management" &&
+          ADMIN_ROLES.includes(userRole) ? (
+            <UserManagement />
+          ) : activePage === "Organizations" &&
+            userRole === "HQ_SUPER_ADMIN" ? (
             <Organizations />
           ) : activePage === "Suppliers" ? (
             <Suppliers />
