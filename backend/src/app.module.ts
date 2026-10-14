@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -27,7 +26,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
       }),
     }),
     TypeOrmModule.forFeature([Organization]),
-    OrganizationsModule
+    OrganizationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
