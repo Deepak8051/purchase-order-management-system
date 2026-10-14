@@ -1,120 +1,178 @@
-
-import { useEffect, useState } from 'react'
-import axios from 'axios'
-import api from '../services/api'
+import { useEffect, useState } from "react";
+import axios from "axios";
+import api from "../services/api";
 
 type Supplier = {
-  id: number
-  name: string
-  code: string
-  contactPerson?: string
-  email?: string
-  phone?: string
-  address?: string
-  isActive?: boolean
-}
+  id: number;
+  name: string;
+  code: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  isActive?: boolean;
+};
+
+const emptyForm = {
+  name: "",
+  code: "",
+  contactPerson: "",
+  email: "",
+  phone: "",
+  address: "",
+};
 
 function Suppliers() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const [form, setForm] = useState({
-    name: '',
-    code: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    address: '',
-  })
+  const [form, setForm] = useState(emptyForm);
 
   const loadSuppliers = async () => {
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError("");
 
     try {
-      const response = await api.get('/suppliers')
-      const data = response.data
+      const response = await api.get("/suppliers");
+      const data = response.data;
       const records = Array.isArray(data)
         ? data
         : Array.isArray(data?.items)
           ? data.items
           : Array.isArray(data?.data)
             ? data.data
-            : []
+            : [];
 
-      setSuppliers(records)
-    } catch (err: unknown) {
-      setError(
-        axios.isAxiosError(err)
-          ? err.response?.data?.message ?? 'Unable to load suppliers.'
-          : 'An unexpected error occurred.',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    void loadSuppliers()
-  }, [])
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError('')
-    setSuccess('')
-    setSaving(true)
-
-    try {
-      await api.post('/suppliers', {
-        name: form.name.trim(),
-        code: form.code.trim(),
-        contactPerson: form.contactPerson.trim() || undefined,
-        email: form.email.trim() || undefined,
-        phone: form.phone.trim() || undefined,
-        address: form.address.trim() || undefined,
-      })
-
-      setForm({
-        name: '',
-        code: '',
-        contactPerson: '',
-        email: '',
-        phone: '',
-        address: '',
-      })
-
-      setShowForm(false)
-      setSuccess('Supplier created successfully.')
-      await loadSuppliers()
+      setSuppliers(records);
     } catch (err: unknown) {
       setError(
         axios.isAxiosError(err)
           ? Array.isArray(err.response?.data?.message)
-            ? err.response.data.message.join(', ')
-            : err.response?.data?.message ?? 'Unable to create supplier.'
-          : 'An unexpected error occurred.',
-      )
+            ? err.response.data.message.join(", ")
+            : (err.response?.data?.message ?? "Unable to load suppliers.")
+          : "An unexpected error occurred.",
+      );
     } finally {
-      setSaving(false)
+      setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    void loadSuppliers();
+  }, []);
+
+  const resetForm = () => {
+    setForm({ ...emptyForm });
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const handleEdit = (supplier: Supplier) => {
+    setEditingId(supplier.id);
+    setForm({
+      name: supplier.name ?? "",
+      code: supplier.code ?? "",
+      contactPerson: supplier.contactPerson ?? "",
+      email: supplier.email ?? "",
+      phone: supplier.phone ?? "",
+      address: supplier.address ?? "",
+    });
+    setShowForm(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    setSaving(true);
+
+    const payload = {
+      name: form.name.trim(),
+      code: form.code.trim(),
+      contactPerson: form.contactPerson.trim() || undefined,
+      email: form.email.trim() || undefined,
+      phone: form.phone.trim() || undefined,
+      address: form.address.trim() || undefined,
+    };
+
+    try {
+      if (editingId !== null) {
+        await api.patch(`/suppliers/${editingId}`, payload);
+        setSuccess("Supplier updated successfully.");
+      } else {
+        await api.post("/suppliers", payload);
+        setSuccess("Supplier created successfully.");
+      }
+
+      resetForm();
+      await loadSuppliers();
+    } catch (err: unknown) {
+      setError(
+        axios.isAxiosError(err)
+          ? Array.isArray(err.response?.data?.message)
+            ? err.response.data.message.join(", ")
+            : (err.response?.data?.message ??
+              `Unable to ${editingId !== null ? "update" : "create"} supplier.`)
+          : "An unexpected error occurred.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (supplier: Supplier) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete supplier "${supplier.name}"?`,
+    );
+
+    if (!confirmed) return;
+
+    setError("");
+    setSuccess("");
+    setDeletingId(supplier.id);
+
+    try {
+      await api.delete(`/suppliers/${supplier.id}`);
+
+      if (editingId === supplier.id) {
+        resetForm();
+      }
+
+      setSuccess("Supplier deleted successfully.");
+      await loadSuppliers();
+    } catch (err: unknown) {
+      setError(
+        axios.isAxiosError(err)
+          ? Array.isArray(err.response?.data?.message)
+            ? err.response.data.message.join(", ")
+            : (err.response?.data?.message ?? "Unable to delete supplier.")
+          : "An unexpected error occurred.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const filteredSuppliers = suppliers.filter((supplier) =>
     [
       supplier.name,
       supplier.code,
-      supplier.email ?? '',
-      supplier.contactPerson ?? '',
+      supplier.email ?? "",
+      supplier.contactPerson ?? "",
     ]
-      .join(' ')
+      .join(" ")
       .toLowerCase()
       .includes(search.toLowerCase()),
-  )
+  );
 
   return (
     <section className="p-6 md:p-8">
@@ -129,25 +187,38 @@ function Suppliers() {
         </div>
 
         <button
+          type="button"
           onClick={() => {
-            setShowForm(!showForm)
-            setError('')
-            setSuccess('')
+            if (showForm) {
+              resetForm();
+            } else {
+              setForm({ ...emptyForm });
+              setEditingId(null);
+              setShowForm(true);
+            }
+            setError("");
+            setSuccess("");
           }}
           className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
         >
-          {showForm ? 'Cancel' : '+ Add Supplier'}
+          {showForm ? "Cancel" : "+ Add Supplier"}
         </button>
       </div>
 
       {error && (
-        <div role="alert" className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700"
+        >
           {error}
         </div>
       )}
 
       {success && (
-        <div className="mb-4 rounded-lg bg-green-50 p-4 text-sm text-green-700">
+        <div
+          role="status"
+          className="mb-4 rounded-lg bg-green-50 p-4 text-sm text-green-700"
+        >
           {success}
         </div>
       )}
@@ -158,7 +229,7 @@ function Suppliers() {
           className="mb-6 grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-2"
         >
           <h3 className="text-lg font-semibold md:col-span-2">
-            Add New Supplier
+            {editingId !== null ? "Edit Supplier" : "Add New Supplier"}
           </h3>
 
           <input
@@ -215,13 +286,27 @@ function Suppliers() {
             className="rounded-lg border border-slate-300 px-4 py-3 md:col-span-2"
           />
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2"
-          >
-            {saving ? 'Saving...' : 'Save Supplier'}
-          </button>
+          <div className="flex gap-3 md:col-span-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            >
+              {saving
+                ? "Saving..."
+                : editingId !== null
+                  ? "Update Supplier"
+                  : "Save Supplier"}
+            </button>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-lg border border-slate-300 px-5 py-3 font-semibold text-slate-700"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
@@ -243,19 +328,26 @@ function Suppliers() {
               <th className="px-5 py-4">Contact Person</th>
               <th className="px-5 py-4">Email</th>
               <th className="px-5 py-4">Phone</th>
+              <th className="px-5 py-4">Actions</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
+                <td
+                  colSpan={6}
+                  className="px-5 py-10 text-center text-slate-500"
+                >
                   Loading suppliers...
                 </td>
               </tr>
             ) : filteredSuppliers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-slate-500">
+                <td
+                  colSpan={6}
+                  className="px-5 py-10 text-center text-slate-500"
+                >
                   No suppliers found.
                 </td>
               </tr>
@@ -266,11 +358,29 @@ function Suppliers() {
                     {supplier.name}
                   </td>
                   <td className="px-5 py-4">{supplier.code}</td>
+                  <td className="px-5 py-4">{supplier.contactPerson || "—"}</td>
+                  <td className="px-5 py-4">{supplier.email || "—"}</td>
+                  <td className="px-5 py-4">{supplier.phone || "—"}</td>
                   <td className="px-5 py-4">
-                    {supplier.contactPerson || '—'}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(supplier)}
+                        disabled={deletingId !== null}
+                        className="rounded-md bg-amber-100 px-3 py-2 font-medium text-amber-800 hover:bg-amber-200 disabled:opacity-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(supplier)}
+                        disabled={deletingId !== null}
+                        className="rounded-md bg-red-100 px-3 py-2 font-medium text-red-800 hover:bg-red-200 disabled:opacity-50"
+                      >
+                        {deletingId === supplier.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
                   </td>
-                  <td className="px-5 py-4">{supplier.email || '—'}</td>
-                  <td className="px-5 py-4">{supplier.phone || '—'}</td>
                 </tr>
               ))
             )}
@@ -282,7 +392,7 @@ function Suppliers() {
         Showing {filteredSuppliers.length} of {suppliers.length} suppliers
       </p>
     </section>
-  )
+  );
 }
 
-export default Suppliers
+export default Suppliers;
